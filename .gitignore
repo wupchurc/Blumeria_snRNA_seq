@@ -1,8 +1,19 @@
+# RStudio
 .Rproj.user
 .Rhistory
 .RData
 .Ruserdata
+
+# Data/outputs
 data/
 *.h5
-data/
-*.h5
+*.rds
+*.png
+*.csv
+output/
+results/
+
+# renv 
+renv/library/
+!renv/activate.R
+!renv.lock
