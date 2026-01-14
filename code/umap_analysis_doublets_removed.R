@@ -327,7 +327,7 @@ tab_counts <- table(
 # relative proportions within each condition (columns sum to 1)
 tab_prop <- prop.table(tab_counts, margin = 2)
 df_prop <- as.data.frame(tab_prop) %>%
-  rename(Proportion = Freq)
+  dplyr::rename(Proportion = Freq)
 
 p_bar <- ggplot(df_prop,
                 aes(x = 1, y = Proportion, fill = CellType)) +
