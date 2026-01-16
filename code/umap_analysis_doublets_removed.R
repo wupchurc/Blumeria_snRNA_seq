@@ -385,5 +385,42 @@ colData <- colData %>%
     )
   ) %>%
   column_to_rownames(var = "samples")
+# DESeq2 ----
+# Create DESeq2 object
+dds <- DESeqDataSetFromMatrix(
+  countData = cm_cts, 
+  colData = colData, 
+  design = ~ condition)
+
+# filter
+keep <- rowSums(counts(dds)) >= 10
+dds <- dds[keep, ]
+
+# Ensure reference level (optional but recommended)
+dds$condition <- relevel(dds$condition, ref = "Control")
+
+# run DESeq2
+dds <- DESeq(dds)
+
+# Check the coefficients for the comparison
+resultsNames(dds)
+
+# Control vs MCT-Water
+res_ctrl_vs_water <- results(dds,
+                             contrast = c("condition", "MCT-Water", "Control")
+)
+
+# Control vs MCT-Blumeria
+res_ctrl_vs_blum <- results(dds,
+                            contrast = c("condition", "MCT-Blumeria", "Control")
+)
+
+# MCT-Blumeria vs MCT-Water
+res_blum_vs_water <- results(dds,
+                             contrast = c("condition", "MCT-Blumeria", "MCT-Water")
+)
 
 
+
+# Generate results object
+res <- results(dds, name = "Control_vs_MCT-Water_vs_MCT-Blumeria")
