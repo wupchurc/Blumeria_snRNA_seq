@@ -369,23 +369,21 @@ DefaultAssay(seu_integrated) <- "RNA"  # Use raw counts
 # Subset to cardiomyocytes
 cm_cells <- WhichCells(seu_integrated, idents = "Cardiomyocytes")
 seu_cm <- subset(seu_integrated, cells = cm_cells)
+# Pseudobulk Matrix
+cm_cts <- AggregateExpression(seu_cm, assays = "RNA", group.by = "orig.ident", 
+                              slot = "counts", return.seurat = FALSE)
+cm_cts <- cm_cts$RNA
+# Prepare Metadata
+colData <- data.frame(samples = colnames(cm_cts))
 
-# Pseudobulk: aggregate raw counts by sample_id within cell type (here, only CM)
-# Use orig.ident as sample_id
-seu_cm$sample_id <- seu_cm$orig.ident
-# table(seu_cm$sample_id, seu_cm$condition)
+colData <- colData %>%
+  mutate(
+    condition = case_when(
+      str_detect(samples, "Blumeria") ~ "MCT-Blumeria",
+      str_detect(samples, "Water") ~ "MCT-Water",
+      str_detect(samples, "Control") ~ "Control"
+    )
+  ) %>%
+  column_to_rownames(var = "samples")
 
-# Pseudobulk raw counts by sample (CM cells only)
-counts_pseudo <- AggregateExpression(seu_cm, 
-                                     assays = "RNA", 
-                                     group.by = "sample_id", 
-                                     slot = "counts")$RNA
 
-col_data <- seu_cm@meta.data %>%
-  dplyr::select(sample_id, condition) %>%        # 1. Pick only these 2 columns
-  distinct() %>%                                  # 2. Keep 1 row per unique sample_id  
-  column_to_rownames("sample_id")                 # 3. Make sample_id the rownames
-col_data$condition <- relevel(factor(col_data$condition), ref = "Control")  # 4. Set reference level
-# Check dimensions
-print(dim(counts_pseudo))  # Rows=genes, Cols=samples (~12?)
-print(col_data)            # Samples x condition
