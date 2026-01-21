@@ -262,7 +262,6 @@ DimPlot(seu_integrated,
 # Replot UMAPs with identified clusters
 print(DimPlot(seu_integrated, reduction = 'umap',split.by = 'condition', label = TRUE, 
               label.size = 3, repel      = TRUE)) + NoLegend()
-print(DimPlot(seu_integrated, reduction = 'umap',split.by = 'condition', label = FALSE)) 
 
 # Relative quantification ----
 
@@ -408,11 +407,341 @@ dds <- DESeq(dds)
 resultsNames(dds)
 
 # Extract contrasts
-res_ctrl_vs_water <- results(dds, contrast = c("condition", "MCT-Water", "Control"))
-res_ctrl_vs_blum <- results(dds, contrast = c("condition", "MCT-Blumeria", "Control"))
-res_blum_vs_water <- results(dds, contrast = c("condition", "MCT-Blumeria", "MCT-Water"))
+res_water_vs_ctrl <- results(dds, contrast = c("condition", "MCT-Water", "Control"), alpha = 0.05)
+res_blum_vs_ctrl <- results(dds, contrast = c("condition", "MCT-Blumeria", "Control"), alpha = 0.05)
+res_blum_vs_water <- results(dds, contrast = c("condition", "MCT-Blumeria", "MCT-Water"), alpha = 0.05)
 
 # Compare across contrasts
-summary(res_ctrl_vs_water)
-summary(res_ctrl_vs_blum)
+summary(res_water_vs_ctrl)
+summary(res_blum_vs_ctrl)
 summary(res_blum_vs_water)
+
+# Normalized, variance-stabilized data
+rld <- rlog(dds, blind = FALSE)  # or vst(dds) for faster
+
+# PCA plot
+plotPCA(rld, intgroup = "condition") + 
+  ggtitle("Pseudobulk PCA: Cardiomyocytes")
+
+plotMA(res_blum_vs_water)
+plotMA(res_water_vs_ctrl)
+
+# ---- Pseudobulking and DEG for Macrophages ----
+DefaultAssay(seu_integrated) <- "RNA"  # Use raw counts
+
+# Subset to macrophages
+mac_cells <- WhichCells(seu_integrated, idents = "Macrophages")
+seu_mac <- subset(seu_integrated, cells = mac_cells)
+
+# Pseudobulk Matrix
+mac_cts <- AggregateExpression(seu_mac, assays = "RNA", group.by = "orig.ident", 
+                              slot = "counts", return.seurat = FALSE)
+mac_cts <- mac_cts$RNA
+
+# Prepare Metadata
+colData <- data.frame(samples = colnames(mac_cts))
+
+colData <- colData %>%
+  mutate(
+    condition = case_when(
+      str_detect(samples, "Blumeria") ~ "MCT-Blumeria",
+      str_detect(samples, "Water") ~ "MCT-Water",
+      str_detect(samples, "Control") ~ "Control"
+    )
+  ) %>%
+  column_to_rownames(var = "samples")
+
+# Create DESeq2 object
+dds <- DESeqDataSetFromMatrix(
+  countData = mac_cts, 
+  colData = colData, 
+  design = ~ condition)
+
+# Filter low-count genes
+keep <- rowSums(counts(dds)) >= 10
+dds <- dds[keep, ]
+
+# Ensure reference level (optional but recommended)
+dds$condition <- relevel(dds$condition, ref = "Control")
+
+# run DESeq2
+dds <- DESeq(dds)
+
+# resultsNames show Control as the reference
+resultsNames(dds)
+
+# Extract contrasts
+res_water_vs_ctrl <- results(dds, contrast = c("condition", "MCT-Water", "Control"), alpha = 0.05)
+res_blum_vs_ctrl <- results(dds, contrast = c("condition", "MCT-Blumeria", "Control"), alpha = 0.05)
+res_blum_vs_water <- results(dds, contrast = c("condition", "MCT-Blumeria", "MCT-Water"), alpha = 0.05)
+
+# Compare across contrasts
+summary(res_water_vs_ctrl)
+summary(res_blum_vs_ctrl)
+summary(res_blum_vs_water)
+
+# Normalized, variance-stabilized data
+rld <- rlog(dds, blind = FALSE)  # or vst(dds) for faster
+
+# PCA plot
+plotPCA(rld, intgroup = "condition") + 
+  ggtitle("Pseudobulk PCA: Cardiomyocytes")
+
+plotMA(res_blum_vs_water)
+plotMA(res_water_vs_ctrl)
+
+# ---- Pseudobulking and DEG for Fibroblasts ----
+DefaultAssay(seu_integrated) <- "RNA"  # Use raw counts
+
+# Subset to Fibroblasts
+fb_cells <- WhichCells(seu_integrated, idents = "Fibroblasts")
+seu_fb <- subset(seu_integrated, cells = fb_cells)
+
+# Pseudobulk Matrix
+fb_cts <- AggregateExpression(seu_fb, assays = "RNA", group.by = "orig.ident", 
+                               slot = "counts", return.seurat = FALSE)
+fb_cts <- fb_cts$RNA
+
+# Prepare Metadata
+colData <- data.frame(samples = colnames(fb_cts))
+
+colData <- colData %>%
+  mutate(
+    condition = case_when(
+      str_detect(samples, "Blumeria") ~ "MCT-Blumeria",
+      str_detect(samples, "Water") ~ "MCT-Water",
+      str_detect(samples, "Control") ~ "Control"
+    )
+  ) %>%
+  column_to_rownames(var = "samples")
+
+# Create DESeq2 object
+dds <- DESeqDataSetFromMatrix(
+  countData = fb_cts, 
+  colData = colData, 
+  design = ~ condition)
+
+# Filter low-count genes
+keep <- rowSums(counts(dds)) >= 10
+dds <- dds[keep, ]
+
+# Ensure reference level (optional but recommended)
+dds$condition <- relevel(dds$condition, ref = "Control")
+
+# run DESeq2
+dds <- DESeq(dds)
+
+# resultsNames show Control as the reference
+resultsNames(dds)
+
+# Extract contrasts
+res_water_vs_ctrl <- results(dds, contrast = c("condition", "MCT-Water", "Control"), alpha = 0.05)
+res_blum_vs_ctrl <- results(dds, contrast = c("condition", "MCT-Blumeria", "Control"), alpha = 0.05)
+res_blum_vs_water <- results(dds, contrast = c("condition", "MCT-Blumeria", "MCT-Water"), alpha = 0.05)
+
+# Compare across contrasts
+summary(res_water_vs_ctrl)
+summary(res_blum_vs_ctrl)
+summary(res_blum_vs_water)
+
+# Normalized, variance-stabilized data
+rld <- rlog(dds, blind = FALSE)  # or vst(dds) for faster
+
+# PCA plot
+plotPCA(rld, intgroup = "condition") + 
+  ggtitle("Pseudobulk PCA: ")
+
+plotMA(res_blum_vs_water)
+plotMA(res_water_vs_ctrl)
+
+# ---- Pseudobulking and DEG for Pericytes ----
+DefaultAssay(seu_integrated) <- "RNA"  # Use raw counts
+
+# Subset to Fibroblasts
+peri_cells <- WhichCells(seu_integrated, idents = "Pericytes")
+seu_peri <- subset(seu_integrated, cells = peri_cells)
+
+# Pseudobulk Matrix
+peri_cts <- AggregateExpression(seu_peri, assays = "RNA", group.by = "orig.ident", 
+                              slot = "counts", return.seurat = FALSE)
+peri_cts <- peri_cts$RNA
+
+# Prepare Metadata
+colData <- data.frame(samples = colnames(peri_cts))
+
+colData <- colData %>%
+  mutate(
+    condition = case_when(
+      str_detect(samples, "Blumeria") ~ "MCT-Blumeria",
+      str_detect(samples, "Water") ~ "MCT-Water",
+      str_detect(samples, "Control") ~ "Control"
+    )
+  ) %>%
+  column_to_rownames(var = "samples")
+
+# Create DESeq2 object
+dds <- DESeqDataSetFromMatrix(
+  countData = peri_cts, 
+  colData = colData, 
+  design = ~ condition)
+
+# Filter low-count genes
+keep <- rowSums(counts(dds)) >= 10
+dds <- dds[keep, ]
+
+# Ensure reference level (optional but recommended)
+dds$condition <- relevel(dds$condition, ref = "Control")
+
+# run DESeq2
+dds <- DESeq(dds)
+
+# resultsNames show Control as the reference
+resultsNames(dds)
+
+# Extract contrasts
+res_water_vs_ctrl <- results(dds, contrast = c("condition", "MCT-Water", "Control"), alpha = 0.05)
+res_blum_vs_ctrl <- results(dds, contrast = c("condition", "MCT-Blumeria", "Control"), alpha = 0.05)
+res_blum_vs_water <- results(dds, contrast = c("condition", "MCT-Blumeria", "MCT-Water"), alpha = 0.05)
+
+# Compare across contrasts
+summary(res_water_vs_ctrl)
+summary(res_blum_vs_ctrl)
+summary(res_blum_vs_water)
+
+# Normalized, variance-stabilized data
+rld <- rlog(dds, blind = FALSE)  # or vst(dds) for faster
+
+# PCA plot
+plotPCA(rld, intgroup = "condition") + 
+  ggtitle("Pseudobulk PCA: ")
+
+plotMA(res_blum_vs_water)
+plotMA(res_water_vs_ctrl)
+
+# ---- Pseudobulking and DEG for Neutrophils ----
+DefaultAssay(seu_integrated) <- "RNA"  # Use raw counts
+
+# Subset to Neutrophils
+neut_cells <- WhichCells(seu_integrated, idents = "Neutrophils")
+seu_neut <- subset(seu_integrated, cells = neut_cells)
+
+# Pseudobulk Matrix
+neut_cts <- AggregateExpression(seu_neut, assays = "RNA", group.by = "orig.ident", 
+                                slot = "counts", return.seurat = FALSE)
+neut_cts <- neut_cts$RNA
+
+# Prepare Metadata
+colData <- data.frame(samples = colnames(neut_cts))
+
+colData <- colData %>%
+  mutate(
+    condition = case_when(
+      str_detect(samples, "Blumeria") ~ "MCT-Blumeria",
+      str_detect(samples, "Water") ~ "MCT-Water",
+      str_detect(samples, "Control") ~ "Control"
+    )
+  ) %>%
+  column_to_rownames(var = "samples")
+
+# Create DESeq2 object
+dds <- DESeqDataSetFromMatrix(
+  countData = neut_cts, 
+  colData = colData, 
+  design = ~ condition)
+
+# Filter low-count genes
+keep <- rowSums(counts(dds)) >= 10
+dds <- dds[keep, ]
+
+# Ensure reference level (optional but recommended)
+dds$condition <- relevel(dds$condition, ref = "Control")
+
+# run DESeq2
+dds <- DESeq(dds)
+
+# resultsNames show Control as the reference
+resultsNames(dds)
+
+# Extract contrasts
+res_water_vs_ctrl <- results(dds, contrast = c("condition", "MCT-Water", "Control"), alpha = 0.05)
+res_blum_vs_ctrl <- results(dds, contrast = c("condition", "MCT-Blumeria", "Control"), alpha = 0.05)
+res_blum_vs_water <- results(dds, contrast = c("condition", "MCT-Blumeria", "MCT-Water"), alpha = 0.05)
+
+# Compare across contrasts
+summary(res_water_vs_ctrl)
+summary(res_blum_vs_ctrl)
+summary(res_blum_vs_water)
+
+# Normalized, variance-stabilized data
+rld <- rlog(dds, blind = FALSE)  # or vst(dds) for faster
+
+# PCA plot
+plotPCA(rld, intgroup = "condition") + 
+  ggtitle("Pseudobulk PCA: ")
+
+plotMA(res_blum_vs_water)
+plotMA(res_water_vs_ctrl)
+
+# ---- Pseudobulking and DEG for Capillary EC ----
+DefaultAssay(seu_integrated) <- "RNA"  # Use raw counts
+
+# Subset to Capillary EC
+cap_cells <- WhichCells(seu_integrated, idents = "Capillary EC")
+seu_cap <- subset(seu_integrated, cells = cap_cells)
+
+# Pseudobulk Matrix
+cap_cts <- AggregateExpression(seu_cap, assays = "RNA", group.by = "orig.ident", 
+                                slot = "counts", return.seurat = FALSE)
+cap_cts <- cap_cts$RNA
+
+# Prepare Metadata
+colData <- data.frame(samples = colnames(cap_cts))
+
+colData <- colData %>%
+  mutate(
+    condition = case_when(
+      str_detect(samples, "Blumeria") ~ "MCT-Blumeria",
+      str_detect(samples, "Water") ~ "MCT-Water",
+      str_detect(samples, "Control") ~ "Control"
+    )
+  ) %>%
+  column_to_rownames(var = "samples")
+
+# Create DESeq2 object
+dds <- DESeqDataSetFromMatrix(
+  countData = cap_cts, 
+  colData = colData, 
+  design = ~ condition)
+
+# Filter low-count genes
+keep <- rowSums(counts(dds)) >= 10
+dds <- dds[keep, ]
+
+# Ensure reference level (optional but recommended)
+dds$condition <- relevel(dds$condition, ref = "Control")
+
+# run DESeq2
+dds <- DESeq(dds)
+
+# resultsNames show Control as the reference
+resultsNames(dds)
+
+# Extract contrasts
+res_water_vs_ctrl <- results(dds, contrast = c("condition", "MCT-Water", "Control"), alpha = 0.05)
+res_blum_vs_ctrl <- results(dds, contrast = c("condition", "MCT-Blumeria", "Control"), alpha = 0.05)
+res_blum_vs_water <- results(dds, contrast = c("condition", "MCT-Blumeria", "MCT-Water"), alpha = 0.05)
+
+# Compare across contrasts
+summary(res_water_vs_ctrl)
+summary(res_blum_vs_ctrl)
+summary(res_blum_vs_water)
+
+# Normalized, variance-stabilized data
+rld <- rlog(dds, blind = FALSE)  # or vst(dds) for faster
+
+# PCA plot
+plotPCA(rld, intgroup = "condition") + 
+  ggtitle("Pseudobulk PCA: ")
+
+plotMA(res_blum_vs_water)
+plotMA(res_water_vs_ctrl)
