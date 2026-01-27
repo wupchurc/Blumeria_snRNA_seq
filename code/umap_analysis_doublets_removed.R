@@ -359,69 +359,6 @@ ggsave(
   dpi      = 300
 )
 
-# ---- Pseudobulking and DEG for Cardiomyocytes ----
-DefaultAssay(seu_integrated) <- "RNA"  # Use raw counts
-
-# Subset to cardiomyocytes
-cm_cells <- WhichCells(seu_integrated, idents = "Cardiomyocytes")
-seu_cm <- subset(seu_integrated, cells = cm_cells)
-
-# Pseudobulk Matrix
-cm_cts <- AggregateExpression(seu_cm, assays = "RNA", group.by = "orig.ident", 
-                              slot = "counts", return.seurat = FALSE)
-cm_cts <- cm_cts$RNA
-
-# Prepare Metadata
-colData <- data.frame(samples = colnames(cm_cts))
-
-colData <- colData %>%
-  mutate(
-    condition = case_when(
-      str_detect(samples, "Blumeria") ~ "MCT-Blumeria",
-      str_detect(samples, "Water") ~ "MCT-Water",
-      str_detect(samples, "Control") ~ "Control"
-    )
-  ) %>%
-  column_to_rownames(var = "samples")
-
-# Create DESeq2 object
-dds <- DESeqDataSetFromMatrix(
-  countData = cm_cts, 
-  colData = colData, 
-  design = ~ condition)
-
-# Filter low-count genes
-keep <- rowSums(counts(dds)) >= 10
-dds <- dds[keep, ]
-
-# Ensure reference level (optional but recommended)
-dds$condition <- relevel(dds$condition, ref = "Control")
-
-# run DESeq2
-dds <- DESeq(dds)
-
-# resultsNames show Control as the reference
-resultsNames(dds)
-
-# Extract contrasts
-res_water_vs_ctrl <- results(dds, contrast = c("condition", "MCT-Water", "Control"), alpha = 0.05)
-res_blum_vs_ctrl <- results(dds, contrast = c("condition", "MCT-Blumeria", "Control"), alpha = 0.05)
-res_blum_vs_water <- results(dds, contrast = c("condition", "MCT-Blumeria", "MCT-Water"), alpha = 0.05)
-
-# Compare across contrasts
-summary(res_water_vs_ctrl)
-summary(res_blum_vs_ctrl)
-summary(res_blum_vs_water)
-
-plotMA(res_blum_vs_water)
-plotMA(res_water_vs_ctrl)
-
-vsd <- vst(dds)
-select <- order(rowMeans(counts(dds, normalized = TRUE)),
-                decreasing = TRUE) [1:20]
-pheatmap(assay(vsd)[select,], cluster_rows = FALSE, cluster_cols = FALSE)
-
-
 
 # ---- Consolidated Pseudobulking and DESeq2 Function ----
 run_pseudobulk_deg <- function(seu_obj, cell_type, min_counts = 10, alpha = 0.05,
