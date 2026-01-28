@@ -371,6 +371,9 @@ avg <- AverageExpression(
 mat <- t(avg)
 pca <- prcomp(mat, scale. = TRUE)
 
+# Get variance explained percentages
+pc_var <- round(100 * summary(pca)$importance[2, 1:2], 1) #PC1, PC2 %
+
 df <- data.frame(PC1 = pca$x[,1],
                  PC2 = pca$x[,2],
                  sample = rownames(pca$x))
@@ -383,10 +386,13 @@ sample_condition <- tapply(
 
 df$condition <- sample_condition[df$sample]
 
-ggplot(df, aes(PC1, PC2, color = condition, label = sample)) +
+ggplot(df, aes(PC1, PC2, color = condition, fill = condition)) +
   geom_point(size = 3) +
-  stat_ellipse(level = 0.95, alpha = 0.2, geom = "polygon") + 
-  theme_classic()
+  stat_ellipse(level = 0.95, alpha = 0.3, geom = "polygon") +
+  labs(x = paste0("PC1 (", pc_var[1], "%)"),
+       y = paste0("PC2 (", pc_var[2], "%)")) + 
+  theme_classic() +
+  theme(legend.title = element_blank()) # Removes legend title
 
 # ---- Consolidated Pseudobulking and DESeq2 Function ----
 run_pseudobulk_deg <- function(seu_obj, cell_type, min_counts = 10, alpha = 0.05,
