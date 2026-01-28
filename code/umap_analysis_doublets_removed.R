@@ -362,7 +362,7 @@ ggsave(
 
 # ---- Consolidated Pseudobulking and DESeq2 Function ----
 run_pseudobulk_deg <- function(seu_obj, cell_type, min_counts = 10, alpha = 0.05,
-                               plot_title = NULL, save_results = TRUE) {
+                               plot_title = NULL, save_results = FALSE) {
   
   # Set assay to RNA for raw counts
   DefaultAssay(seu_obj) <- "RNA"
