@@ -359,6 +359,34 @@ ggsave(
   dpi      = 300
 )
 
+# ---- sample-level Principal Component Analysis ----
+
+avg <- AverageExpression(
+  seu_integrated, 
+  assays = "RNA",
+  layer = "data",
+  group.by = "orig.ident"
+)$RNA
+
+mat <- t(avg)
+pca <- prcomp(mat, scale. = TRUE)
+
+df <- data.frame(PC1 = pca$x[,1],
+                 PC2 = pca$x[,2],
+                 sample = rownames(pca$x))
+
+sample_condition <- tapply(
+  seu_integrated$condition,
+  seu_integrated$orig.ident,
+  unique
+)
+
+df$condition <- sample_condition[df$sample]
+
+ggplot(df, aes(PC1, PC2, color = condition, label = sample)) +
+  geom_point(size = 3) +
+  stat_ellipse(level = 0.95, alpha = 0.2, geom = "polygon") + 
+  theme_classic()
 
 # ---- Consolidated Pseudobulking and DESeq2 Function ----
 run_pseudobulk_deg <- function(seu_obj, cell_type, min_counts = 10, alpha = 0.05,
