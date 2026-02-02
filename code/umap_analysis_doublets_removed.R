@@ -267,17 +267,17 @@ celltype_order <- c(
 
 # Define colors matching celltype_order 
 cell_cols <- c(
-  "Cardiomyocytes" = "#FF6B6B",
-  "Fibroblasts"    = "#4ECDC4", 
-  "Pericytes"      = "#45B7D1",
-  "Capillary EC"   = "#96CEB4",
-  "Venous EC"      = "#FFEAA7",
-  "Lymphatic EC"   = "#DDA0DD",
-  "Macrophages"    = "#98D8C8",
-  "Neutrophils"    = "#F7DC6F",
-  "T cells"        = "#BB8FCE",
-  "B cells"        = "#85C1E9",
-  "Neuronal"       = "#F8C471"
+  "Cardiomyocytes" = "#BA1C30",
+  "Fibroblasts"    = "#5FA641", 
+  "Macrophages"      = "#702C8C",
+  "T cells"   = "#999999",
+  "B cells"      = "#CC79A7",
+  "Neutrophils"   = "#D55E00",
+  "Pericytes"    = "#0072B2",
+  "Capillary EC"    = "#F0E442",
+  "Venous EC"        = "#009E73",
+  "Lymphatic EC"        = "#56B4E9",
+  "Neuronal"       = "#E69F00"
 )
 
 # Make cell_type a factor with that order
