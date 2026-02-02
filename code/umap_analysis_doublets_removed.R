@@ -10,6 +10,8 @@ library(SummarizedExperiment)
 library(ComplexHeatmap)
 library(RColorBrewer)
 library(circlize)
+library(tidyr)
+library(dplyr)
 
 # Load control dataset from 10X CellRanger ----
 data_dirs <- c("data/Analysis/cellranger_Control_SP_11_GEX_FL-Z0041/raw_feature_bc_matrix/",
@@ -297,7 +299,7 @@ p_heat <- DoHeatmap(subset(seu_integrated, downsample = 1000),
           features = all_markers,
           size = 3,
           hjust = 0.5,
-          vjust = - 0.2,
+          vjust = - 0.5,
           angle = 0, 
           group.bar.height = 0.06,
           group.by = "cell_type",
@@ -339,15 +341,6 @@ Idents(seu_integrated) <- factor(seu_integrated$cell_type, levels = plot_order)
 seu_integrated$cell_type <- factor(seu_integrated$cell_type, levels = plot_order)
 # Now cell_types and plots follow your desired order
 cell_types <- levels(Idents(seu_integrated))
-
-
-#cell_cols  <- Seurat::DiscretePalette(length(cell_types))
-# cell_cols <- DiscretePalette_scCustomize(
-  # num_colors = length(cell_types),
-  # palette    = "polychrome"   # or "polychrome", "alphabet2", "varibow"
-# )
-# names(cell_cols) <- cell_types
-
 
 origin_x <- -15
 origin_y <- -15
@@ -431,7 +424,7 @@ p_combined <- p_umap / p_bar + plot_layout(heights = c(12, 1))
 print(p_combined)
 
 ggsave(
-  filename = "umap_rel_abundance_legend.png",
+  filename = "umap_rel_abundance.png",
   plot     = p_combined,
   width    = 8,    # adjust as needed
   height   = 6,
@@ -554,6 +547,7 @@ run_pseudobulk_deg <- function(seu_obj, cell_type, min_counts = 10, alpha = 0.05
   title <- ifelse(is.null(plot_title), cell_type, plot_title)
   
   p_pca <- plotPCA(rld, intgroup = "condition") +
+    stat_ellipse(level = 0.95, alpha = 0.3, geom = "polygon") +
     ggtitle(paste("Pseudoulk PCA:", title))
   
   p_ma_water <- plotMA(res_water_vs_ctrl) + ggtitle("MA: Water vs Control")
@@ -601,8 +595,83 @@ run_pseudobulk_deg <- function(seu_obj, cell_type, min_counts = 10, alpha = 0.05
 }
    
 cm_results <- run_pseudobulk_deg(seu_integrated, "Cardiomyocytes")
+fb_results <- run_pseudobulk_deg(seu_integrated, "Fibroblasts")
+
+# ---- Bar Plots of up and down regulated gene counts ----
+# Run DSEq2 on all cell types
+deg_results <- list()
+for (cell_type in cell_types) {
+  cat("\n=== Processing", cell_type, "===\n")
+  deg_results[[cell_type]] <- run_pseudobulk_deg(seu_integrated, cell_type)
+}
+
+# Extract significant DE gene counts
+sig_counts <- data.frame(
+  cell_type = character(),
+  contrast = character(),
+  upregulated = numeric(),
+  downregulated = numeric()
+)
+
+for (cell_type in cell_types) {
+  res <- deg_results[[cell_type]]$results
   
+  # Water vs Control
+  sig_up_water <- sum(res$water_vs_ctrl$padj < 0.05 & res$water_vs_ctrl$log2FoldChange > 0, na.rm = TRUE)
+  sig_down_water <- sum(res$water_vs_ctrl$padj < 0.05 & res$water_vs_ctrl$log2FoldChange < 0, na.rm = TRUE)
+  
+  # Blumeria vs Control  
+  sig_up_blum_ctrl <- sum(res$blum_vs_ctrl$padj < 0.05 & res$blum_vs_ctrl$log2FoldChange > 0, na.rm = TRUE)
+  sig_down_blum_ctrl <- sum(res$blum_vs_ctrl$padj < 0.05 & res$blum_vs_ctrl$log2FoldChange < 0, na.rm = TRUE)
+  
+  # Blumeria vs Water
+  sig_up_blum_water <- sum(res$blum_vs_water$padj < 0.05 & res$blum_vs_water$log2FoldChange > 0, na.rm = TRUE)
+  sig_down_blum_water <- sum(res$blum_vs_water$padj < 0.05 & res$blum_vs_water$log2FoldChange < 0, na.rm = TRUE)
+  
+  sig_counts <- rbind(sig_counts, data.frame(
+    cell_type = cell_type,
+    contrast = "Water vs Ctrl",
+    upregulated = sig_up_water,
+    downregulated = sig_down_water
+  ))
+  sig_counts <- rbind(sig_counts, data.frame(
+    cell_type = cell_type,
+    contrast = "Blumeria vs Ctrl", 
+    upregulated = sig_up_blum_ctrl,
+    downregulated = sig_down_blum_ctrl
+  ))
+  sig_counts <- rbind(sig_counts, data.frame(
+    cell_type = cell_type,
+    contrast = "Blumeria vs Water",
+    upregulated = sig_up_blum_water,
+    downregulated = sig_down_blum_water
+  ))
+}
 
+# Create bar plot
+sig_counts_long <- sig_counts %>%
+  pivot_longer(cols = c(upregulated, downregulated), 
+               names_to = "direction", values_to = "count")
 
+# Use your cell type order and colors
+sig_counts_long$cell_type <- factor(sig_counts_long$cell_type, levels = rev(cell_types))
+sig_counts_long$direction <- factor(sig_counts_long$direction, 
+                                    levels = c("upregulated", "downregulated"))
+sig_counts_long$contrast <- factor(sig_counts_long$contrast, 
+                                   levels = c("Water vs Ctrl", 
+                                              "Blumeria vs Ctrl", 
+                                              "Blumeria vs Water"))
 
+p_sig <- ggplot(sig_counts_long, aes(x = cell_type, y = count, fill = direction)) +
+  geom_col(position = "dodge") +
+  facet_wrap(~ contrast, scales = "free_y", ncol = 3) +
+  scale_fill_manual(values = c("upregulated" = "#E31A1C", "downregulated" = "#1F78B4")) +
+  labs(title = "Significant DE Genes (padj < 0.05) Across Cell Types",
+       x = "Cell Type", y = "Number of DE Genes",
+       fill = "Direction") +
+  theme_minimal() +
+  theme(axis.text.x = element_text(angle = 45, hjust = 1),
+        legend.position = "bottom")
+
+print(p_sig)
 
