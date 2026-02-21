@@ -1,3 +1,19 @@
+# load libraries 
+library(Seurat)
+library(DESeq2)
+library(tidyverse)
+library(patchwork)
+
+library(presto)
+library(scCustomize)
+library(SummarizedExperiment)
+library(RColorBrewer)
+library(circlize)
+library(tidyr)
+
+
+seu_obj <- readRDS("rds_files/seu_for_DGE.rds")
+
 # ---- Consolidated Pseudobulking and DESeq2 Function ----
 run_pseudobulk_deg <- function(seu_obj, cell_type, min_counts = 10, alpha = 0.05,
                                plot_title = NULL, save_results = FALSE) {
@@ -89,6 +105,7 @@ run_pseudobulk_deg <- function(seu_obj, cell_type, min_counts = 10, alpha = 0.05
       water_vs_ctrl = res_water_vs_ctrl,
       blum_vs_ctrl = res_blum_vs_ctrl,
       blum_vs_water = res_blum_vs_water,
+      water_vs_blum = res_water_vs_blum,
       dds = dds,
       rld = rld
     )
@@ -123,15 +140,16 @@ run_pseudobulk_deg <- function(seu_obj, cell_type, min_counts = 10, alpha = 0.05
   ))
 }
 
-cm_results <- run_pseudobulk_deg(seu_integrated, "Cardiomyocytes", alpha = 0.1, 
+cm_results <- run_pseudobulk_deg(seu_obj, "Cardiomyocytes", alpha = 0.1, 
                                  save_results = TRUE)
 
 # ---- Bar Plots of up and down regulated gene counts ----
 # Run DSEq2 on all cell types
 deg_results <- list()
+cell_types <- levels(seu_obj)  
 for (cell_type in cell_types) {
   cat("\\\\n=== Processing", cell_type, "===\\\\n")
-  deg_results[[cell_type]] <- run_pseudobulk_deg(seu_integrated, cell_type, 
+  deg_results[[cell_type]] <- run_pseudobulk_deg(seu_obj, cell_type, 
                                                  alpha = 0.1, save_results = TRUE)
 }
 
@@ -253,6 +271,3 @@ create_celltype_deg_plot <- function(deg_results, cell_types, contrast_name,
     
   }
 }
-
-
-
