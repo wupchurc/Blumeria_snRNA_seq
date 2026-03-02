@@ -155,45 +155,4 @@ seu_integrated <- FindNeighbors(seu_integrated, dims = 1:20)
 seu_integrated <- FindClusters(seu_integrated, resolution = 0.03)
 seu_integrated <- RunUMAP(seu_integrated, dims = 1:20)
 
-saveRDS(seu_integrated, file = "seu_integrated_for_azimuth.rds")
-
-# Prepare Data for Export to Azimuth ----
-# seu_integrated_for_azimuth <- readRDS("seu_integrated_for_azimuth.rds")
-
-# TRIM FOR AZIMUTH - keep only essentials (~500MB)
-# DefaultAssay(seu_integrated_for_azimuth) <- "RNA"  # Azimuth uses RNA counts
-
-# 1. Keep top variable features only
-# top_features <- VariableFeatures(seu_integrated_for_azimuth)[1:3000]
-# seu_integrated_for_azimuth <- subset(seu_integrated_for_azimuth, features = top_features)
-
-# 2. Remove scale.data (bloats size massively)
-# seu_integrated_for_azimuth[["RNA"]]@scale.data <- new("dgCMatrix")
-
-# 3. Keep only key reductions (drop intermediate ones)
-# Reductions(seu_integrated_for_azimuth)  # see what's there
-# keep_reductions <- c("pca", "umap")  # Azimuth needs these
-# for (red in names(Reductions(seu_integrated_for_azimuth))) {
-  # if (!red %in% keep_reductions) {
-    # seu_integrated_for_azimuth[[red]] <- NULL
-  # }
-# }
-
-# 4. Clear command history and extra metadata
-# seu_integrated_for_azimuth@misc <- list()
-# seu_integrated_for_azimuth@commands <- list()
-
-# 5. Save slim version
-# saveRDS(seu_integrated_for_azimuth, file = "seu_azimuth_ready_500MB.rds")
-
-# Verify size
-# print(paste("Original size:", round(file.size("seu_integrated_for_azimuth.rds")/1e9, 2), "GB"))
-# print(paste("Azimuth size: ", round(file.size("seu_azimuth_ready_500MB.rds")/1e9, 2), "GB"))
-
-# Quick structure check
-# print(paste("Cells:", ncol(seu_integrated_for_azimuth)))
-# print(paste("Features:", length(rownames(seu_integrated_for_azimuth))))
-# print("Assays:")
-# print(Assays(seu_integrated_for_azimuth))
-# print("Reductions:")
-# print(Reductions(seu_integrated_for_azimuth))
+saveRDS(seu_integrated, file = "seu_integrated.rds")
