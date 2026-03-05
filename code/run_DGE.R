@@ -4,14 +4,6 @@ library(DESeq2)
 library(tidyverse)
 library(patchwork)
 
-# library(presto)
-# library(scCustomize)
-# library(SummarizedExperiment)
-# library(RColorBrewer)
-# library(circlize)
-# library(tidyr)
-
-
 seu_obj <- readRDS("rds_files/seu_for_DGE.rds")
 
 # ---- Consolidated Pseudobulking and DESeq2 Function ----
@@ -70,7 +62,8 @@ run_pseudobulk_deg <- function(seu_obj, cell_type, min_counts = 10, alpha = 0.05
                               alpha = alpha)
   res_blum_vs_water <- results(dds, contrast = c("condition", "MCT-Blumeria", "MCT-Water"), 
                                alpha = alpha)
-  res_water_vs_blum <- results(dds, contrast = c("condition", "MCT-Water", "MCT-Blumeria"))
+  res_water_vs_blum <- results(dds, contrast = c("condition", "MCT-Water", "MCT-Blumeria"),
+                               alpha = alpha)
   
   # Print summaries
   cat("\n=== DESeq2 Results Summary for", cell_type, "===\n")
@@ -141,10 +134,8 @@ run_pseudobulk_deg <- function(seu_obj, cell_type, min_counts = 10, alpha = 0.05
 }
 
 cm_results <- run_pseudobulk_deg(seu_obj, "Cardiomyocytes", alpha = 0.1, 
-                                 save_results = TRUE)
+                                 save_results = FALSE)
 
-run_pseudobulk_deg(seu_obj, "Pericytes", alpha = 0.1, 
-                   save_results = TRUE)
 # ---- Bar Plots of up and down regulated gene counts ----
 # Run DSEq2 on all cell types
 deg_results <- list()
@@ -167,8 +158,8 @@ for (cell_type in cell_types) {
   res <- deg_results[[cell_type]]$results
   
   # Water vs Control
-  sig_up_water <- sum(res$water_vs_ctrl$padj < 0.1 & res$water_vs_ctrl$log2FoldChange > 0, na.rm = TRUE)
-  sig_down_water <- sum(res$water_vs_ctrl$padj < 0.1 & res$water_vs_ctrl$log2FoldChange < 0, na.rm = TRUE)
+  sig_up_water <- sum(res$water_vs_ctrl$padj < 0.2 & res$water_vs_ctrl$log2FoldChange > 0, na.rm = TRUE)
+  sig_down_water <- sum(res$water_vs_ctrl$padj < 0.2 & res$water_vs_ctrl$log2FoldChange < 0, na.rm = TRUE)
   
   # Blumeria vs Control  
   # sig_up_blum_ctrl <- sum(res$blum_vs_ctrl$padj < 0.05 & res$blum_vs_ctrl$log2FoldChange > 0, na.rm = TRUE)
@@ -179,8 +170,8 @@ for (cell_type in cell_types) {
   # sig_down_blum_water <- sum(res$blum_vs_water$padj < 0.05 & res$blum_vs_water$log2FoldChange < 0, na.rm = TRUE)
   
   # Water vs Blumeria
-  sig_up_water_blum <- sum(res$water_vs_blum$padj < 0.1 & res$water_vs_blum$log2FoldChange > 0, na.rm = TRUE)
-  sig_down_water_blum <- sum(res$water_vs_blum$padj < 0.1 & res$water_vs_blum$log2FoldChange < 0, na.rm = TRUE)
+  sig_up_water_blum <- sum(res$water_vs_blum$padj < 0.2 & res$water_vs_blum$log2FoldChange > 0, na.rm = TRUE)
+  sig_down_water_blum <- sum(res$water_vs_blum$padj < 0.2 & res$water_vs_blum$log2FoldChange < 0, na.rm = TRUE)
   
   sig_counts <- rbind(sig_counts, data.frame(
     cell_type = cell_type,
@@ -228,7 +219,7 @@ p_sig <- ggplot(sig_counts_long, aes(x = cell_type, y = count, fill = direction)
   geom_col(position = "dodge") +
   facet_wrap(~ contrast, scales = "free_y", ncol = 3) +
   scale_fill_manual(values = c("upregulated" = "#E31A1C", "downregulated" = "#1F78B4")) +
-  labs(title = "Significant DE Genes (padj < 0.1) Across Cell Types",
+  labs(title = "Significant DE Genes (padj < 0.2) Across Cell Types",
        x = "Cell Type", y = "Number of DE Genes",
        fill = "Direction") +
   theme_minimal() +
@@ -243,15 +234,16 @@ ggsave("output/DE_Genes_Bar_pval_1.png",plot = p_sig, width = 12, height = 6, dp
 
 # Run DSEq2 on all cell types
 deg_results <- list()
+cell_types <- levels(seu_obj)  
 for (cell_type in cell_types) {
-  cat("\n=== Processing", cell_type, "===\n")
-  deg_results[[cell_type]] <- run_pseudobulk_deg(seu_integrated, cell_type, 
-                                                 alpha = 0.1, save_results = FALSE)
+  cat("\\\\n=== Processing", cell_type, "===\\\\n")
+  deg_results[[cell_type]] <- run_pseudobulk_deg(seu_obj, cell_type, 
+                                                 alpha = 0.2, save_results = FALSE)
 }
 
-# Function to create one panel
-create_celltype_deg_plot <- function(deg_results, cell_types, contrast_name,
-                                     padj_thresh = 0.05, lfc_thresh = 0) {
+# Function to create one panel of MA plots
+create_ma_plot <- function(deg_results, cell_types, contrast_name, 
+                                     padj_thresh = 0.1, lfc_thresh = 0) {
   
   # Collect data for all cell types
   plot_data <- data.frame()
@@ -262,15 +254,109 @@ create_celltype_deg_plot <- function(deg_results, cell_types, contrast_name,
     cell_type <- cell_types[i]
     
     # Extract the appropriate contrast
-    #if (constrast_name == "Water vs Ctrl") {
-    # res <- deg_results[[cell_type]]$results$water_vs_ctrl
-    # } else if (contrast_name == "Blumeria vs Ctrl") {
-    # res <- deg_results[[cell_type]]$results$blum_vs_ctrl
-    # } else if (contrast_name == "Blumeria vs Water") {
-    # res <- deg_results[[cell_type]]$results$blum_vs_water
-    # }
+    if (contrast_name == "Water vs Ctrl") {
+      res <- deg_results[[cell_type]]$results$water_vs_ctrl
+    } else if (contrast_name == "Water vs Blumeria") {
+      res <- deg_results[[cell_type]]$results$water_vs_blum
+    } 
     
     # Convert to data frame
+    df <- as.data.frame(res) %>%
+      mutate(
+        gene = rownames(.),
+        cell_type = cell_type,
+        cell_type_num = i,  # x-axis position
+        significant = !is.na(padj) & padj < padj_thresh & abs(log2FoldChange) > lfc_thresh,
+        direction = case_when(
+          significant & log2FoldChange > 0 ~ "UP",
+          significant & log2FoldChange < 0 ~ "DOWN",
+          TRUE ~ "NS"
+        )
+      )
     
+    plot_data <- rbind(plot_data, df)
+    
+    # Count significant genes
+    up_counts[i] <- sum(df$direction == "UP", na.rm = TRUE)
+    down_counts[i] <- sum(df$direction == "DOWN", na.rm = TRUE)
   }
+  
+  # Set up cell type order and colors
+  plot_data$cell_type <- factor(plot_data$cell_type, levels = cell_types)
+  
+  # Create the plot
+  p <- ggplot(plot_data, aes(x = cell_type_num, y = log2FoldChange)) +
+    ylim(-10,10)+
+    # Plot non-significant points first (gray)
+    geom_jitter(data = filter(plot_data, direction == "NS"),
+                width = 0.25, height = 0, size = 0.3, alpha = 0.2, color = "gray70") +
+    # Plot significant points on top
+    geom_jitter(data = filter(plot_data, direction == "UP"),
+                width = 0.25, height = 0, size = 0.4, alpha = 0.6, color = "#E31A1C") +
+    geom_jitter(data = filter(plot_data, direction == "DOWN"),
+                width = 0.25, height = 0, size = 0.4, alpha = 0.6, color = "#1F78B4") +
+    # Reference line at 0
+    geom_hline(yintercept = 0, linetype = "dashed", color = "black", linewidth = 0.5) +
+    # Labels and theme
+    scale_x_continuous(breaks = 1:length(cell_types),
+                       labels = cell_types) +
+    labs(title = contrast_name,
+         x = NULL,
+         y = "Log2FoldChange") +
+    theme_minimal() +
+    theme(
+      axis.text.x = element_text(angle = 45, hjust = 1, size = 9),
+      panel.grid.major.x = element_blank(),
+      panel.grid.minor = element_blank(),
+      plot.title = element_text(hjust = 0.5, face = "bold", size = 12)
+    )
+  
+  # Add count annotations at top and bottom
+  
+  y_max <- 10
+  y_min <- -10
+  
+  # UP counts (top, in red)
+  for (i in seq_along(cell_types)) {
+    p <- p + annotate("text", x = i, 
+                      # y = max(plot_data$log2FoldChange, na.rm = TRUE) * 1.05,
+                      y = y_max*0.95,
+                      label = up_counts[i], color = "#E31A1C", size = 3.5, fontface = "bold")
+  }
+  
+  # DOWN counts (bottom, in blue)
+  for (i in seq_along(cell_types)) {
+    p <- p + annotate("text", x = i, 
+                      # y = min(plot_data$log2FoldChange, na.rm = TRUE) * 1.05,
+                      y = y_min*0.95,
+                      label = down_counts[i], color = "#1F78B4", size = 3.5, fontface = "bold")
+  }
+  
+  p <- p + annotate("text", x = length(cell_types) + 0.8, y = y_max * 0.95,
+                    label = "UP", color = "#E31A1C", size = 4, fontface = "bold") +
+    annotate("text", x = length(cell_types) + 0.8, y = y_min * 0.95,
+             label = "DOWN", color = "#1F78B4", size = 4, fontface = "bold")
+  
+  return(p)
 }
+
+# Create plots for each contrast
+p_water_ctrl <- create_ma_plot(deg_results, rev(cell_types), "Water vs Ctrl")
+# p_blum_ctrl <- create_celltype_deg_plot(deg_results, cell_types, "Blumeria vs Ctrl")
+p_water_blum <- create_ma_plot(deg_results, rev(cell_types), "Water vs Blumeria")
+
+# Combine using patchwork
+p_ma_combined <- (p_water_ctrl | p_water_blum) +
+  plot_annotation(
+    title = "MA Plots (adj. p-value <0.1)",theme = theme(plot.title = element_text(hjust = 0.5))
+  )
+
+print(p_ma_combined)
+
+ggsave(
+  filename = "output/MA_Combined_Plot_p1.png",
+  plot = p_ma_combined,
+  width = 12.8,
+  height = 7.2,
+  dpi = 300
+)
