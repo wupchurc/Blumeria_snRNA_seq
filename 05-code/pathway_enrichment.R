@@ -5,8 +5,7 @@ library(DESeq2)
 library(ggtangle)
 library(ggplot2)
 
-cm_results <- readRDS("/scratch.global/wupchurc/rds_files/DEG_Cardiomyocytes.rds")
-ntphl_results <- readRDS("/scratch.global/wupchurc/rds_files/DEG_Neutrophils.rds") 
+cm_results <- readRDS("/03-analysis_scratch/DEG_Cardiomyocytes.rds")
 
 #---- Function to process one DESeqResults → up/down ENTREZ lists ----
 get_sig_genes <- function(res, lfc_threshold = 0.5, padj_threshold = 0.05, 

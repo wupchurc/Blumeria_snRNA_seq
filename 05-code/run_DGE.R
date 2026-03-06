@@ -85,13 +85,11 @@ run_pseudobulk_deg <- function(seu_obj, cell_type, min_counts = 10, alpha = 0.05
     ggtitle(paste("Pseudoulk PCA:", title))
   
   p_ma_water <- plotMA(res_water_vs_ctrl) + ggtitle("MA: Water vs Control")
-  p_ma_blum_water <- plotMA(res_blum_vs_water) + ggtitle("MA: Blumeria vs Water")
   p_ma_water_blum <- plotMA(res_water_vs_blum) + ggtitle("MA: Water vs Blumeria")
   
   # Display plots
   print(p_pca)
   print(p_ma_water)
-  # print(p_ma_blum_water)
   print(p_ma_water_blum)
   
   # Save results if requested
@@ -128,9 +126,9 @@ run_pseudobulk_deg <- function(seu_obj, cell_type, min_counts = 10, alpha = 0.05
     ),
     dds = dds,
     rld = rld,
-    plots = list(pca = p_pca
-                 # , ma_water = p_ma_water, 
-                 # ma_blum_water = p_ma_blum_water
+    plots = list(pca = p_pca,
+                 ma_water = p_ma_water, 
+                 ma_blum_water = p_ma_water_blum
     )
   ))
 }
@@ -242,7 +240,7 @@ cell_types <- levels(seu_obj)
 for (cell_type in cell_types) {
   cat("\\\\n=== Processing", cell_type, "===\\\\n")
   deg_results[[cell_type]] <- run_pseudobulk_deg(seu_obj, cell_type, 
-                                                 alpha = 0.2, save_results = FALSE)
+                                                 alpha = 0.2, save_results = TRUE)
 }
 
 # Function to create one panel of MA plots
