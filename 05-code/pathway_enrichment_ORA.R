@@ -4,9 +4,9 @@ library(org.Rn.eg.db)
 library(DESeq2)
 library(ggtangle)
 library(ggplot2)
+library(patchwork)
 
 cm_results <- readRDS("03-analysis_scratch/DEG_Cardiomyocytes.rds")
-mac_results <- readRDS("03-analysis_scratch/DEG_Macrophages.rds")
 
 #---- Function to process one DESeqResults → up/down ENTREZ lists ----
 get_sig_genes <- function(res, lfc_threshold = 0.5, padj_threshold = 0.05, 
@@ -41,7 +41,6 @@ get_sig_genes(res = cm_results$water_vs_ctrl, lfc_threshold = 0.5, padj_threshol
               comp_name = "water_vs_ctrl", cell_name = "cm", write_files = TRUE)
 get_sig_genes(res = cm_results$water_vs_blum, lfc_threshold = 0.5, padj_threshold = 0.05, 
               comp_name = "water_vs_blum", cell_name = "cm", write_files = TRUE)
-
 
 # ---- Refactored Code for ORA ----
 
@@ -89,13 +88,13 @@ analyze_celltype <- function(results_obj, cell_name, lfc_threshold = 0.5, padj_t
   
   # Plots
   p_up <- dotplot(comp_up, showCategory = 10, font.size = 8, size = "Count") + 
-    ggtitle(paste(cell_name, "- Upregulated (p<0.25)")) 
+    ggtitle(paste(cell_name, "- Upregulated")) 
   # +
     # scale_size_continuous(name = "Gene\nCount", breaks = c(5,10,15,20,25,30,35,40,45,50),
                           # limits = c(0,50), range = c(2,10))
   
   p_down <- dotplot(comp_down, showCategory = 10, font.size = 8, size = "Count") +
-    ggtitle(paste(cell_name, "- Downregulated (p<0.25)")) 
+    ggtitle(paste(cell_name, "- Downregulated")) 
   # +
     # scale_size_continuous(name = "Gene\nCount", breaks = c(5,10,15,20,25,30,40,45,50),
                           # limits = c(0,50), range = c(2,10))
@@ -103,68 +102,13 @@ analyze_celltype <- function(results_obj, cell_name, lfc_threshold = 0.5, padj_t
   print(p_up)
   print(p_down)
   
+  p_combined <- p_up + p_down + plot_layout(ncol=2)
+  print(p_combined)
+  
   # Return results
   list (up = comp_up, down = comp_down, sig_lists = sig_lists, background = shared_background)
   
 }
 
-
-
 cm_analysis <- analyze_celltype(cm_results, "Cardiomyocytes")
 
-
-
-# ---- GSEA ----
-analyze_celltype_gsea <- function(results_obj, cell_name) {  # No lfc_threshold needed
-  
-  # Function to get ranked list
-  get_ranked_list <- function(res) {
-    df <- as.data.frame(res)
-    df$gene <- rownames(res)
-    id_map <- bitr(df$gene, fromType="SYMBOL", toType="ENTREZID", OrgDb=org.Rn.eg.db)
-    df <- merge(df, id_map, by.x="gene", by.y="SYMBOL")
-    df <- df[!is.na(df$ENTREZID) & !is.na(df$log2FoldChange), ]
-    gene_list <- df$log2FoldChange
-    names(gene_list) <- df$ENTREZID
-    gene_list <- sort(gene_list, decreasing = TRUE)
-    return(gene_list)
-  }
-  
-  ranked_lists <- list(
-    water_vs_ctrl = get_ranked_list(results_obj$water_vs_ctrl),
-    water_vs_blum = get_ranked_list(results_obj$water_vs_blum)
-  )
-  
-  # GSEA comparison with formula syntax for compareCluster
-  comp_gsea <- compareCluster(
-    ENTREZID | log2FoldChange ~ contrast_name,
-    data = do.call(rbind, lapply(names(ranked_lists), function(nm) {
-      data.frame(ENTREZID = names(ranked_lists[[nm]]), 
-                 log2FoldChange = ranked_lists[[nm]], 
-                 contrast_name = nm)
-    })),
-    fun = "gseGO",
-    OrgDb = org.Rn.eg.db,
-    ont = "BP",
-    keyType = "ENTREZID",
-    pvalueCutoff = 0.05,
-    pAdjustMethod = "BH",
-    minGSSize = 10,
-    maxGSSize = 500,
-    nPermSimple = 10000,  # Permutations for GSEA
-    verbose = FALSE
-  )
-  
-  # Plot
-  p_gsea <- dotplot(comp_gsea, showCategory = 5, font.size = 8, split = ".sign") + 
-    facet_grid(. ~ .sign) +
-    ggtitle(paste(cell_name, "- GSEA (BP)"))
-  
-  print(p_gsea)
-  
-  return(list(gsea = comp_gsea, ranked_lists = ranked_lists))
-}
-
-
-cm_gsea <- analyze_celltype_gsea(cm_results, "Cardiomyocytes")
-mac_gsea <- analyze_celltype_gsea(mac_results, "Macrophages")
