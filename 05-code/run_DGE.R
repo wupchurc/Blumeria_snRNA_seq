@@ -3,10 +3,10 @@ library(Seurat)
 library(DESeq2)
 library(tidyverse)
 library(patchwork)
-
+library(EnhancedVolcano)
 
 # seu_obj <- readRDS("rds_files/seu_for_DGE.rds")
-seu_obj <- readRDS("/scratch.global/wupchurc/rds_files/seu_for_DGE.rds")
+seu_obj <- readRDS("03-analysis_scratch/seu_for_DGE.rds")
 
 # ---- Consolidated Pseudobulking and DESeq2 Function ----
 run_pseudobulk_deg <- function(seu_obj, cell_type, min_counts = 10, alpha = 0.05,
@@ -89,8 +89,8 @@ run_pseudobulk_deg <- function(seu_obj, cell_type, min_counts = 10, alpha = 0.05
   
   # Display plots
   print(p_pca)
-  print(p_ma_water)
-  print(p_ma_water_blum)
+  # print(p_ma_water)
+  # print(p_ma_water_blum)
   
   # Save results if requested
   if (save_results) {
@@ -104,7 +104,7 @@ run_pseudobulk_deg <- function(seu_obj, cell_type, min_counts = 10, alpha = 0.05
     )
     
     filename <- paste0("DEG_", gsub("[^A-Za-z0-9]", "_", cell_type), ".rds")
-    saveRDS(results_list, file = paste0("/scratch.global/wupchurc/rds_files/", filename))
+    saveRDS(results_list, file = paste0("03-analysis_scratch/", filename))
     cat("Results saved to:", filename, "\n")
     
     # Save plots
@@ -133,11 +133,6 @@ run_pseudobulk_deg <- function(seu_obj, cell_type, min_counts = 10, alpha = 0.05
   ))
 }
 
-cm_results <- run_pseudobulk_deg(seu_obj, "Cardiomyocytes", alpha = 0.1, 
-                                 save_results = FALSE)
-
-run_pseudobulk_deg(seu_obj, "Pericytes", alpha = 0.1, 
-                   save_results = TRUE)
 # ---- Bar Plots of up and down regulated gene counts ----
 # Run DSEq2 on all cell types
 deg_results <- list()
@@ -232,7 +227,7 @@ print(p_sig)
 
 ggsave("output/DE_Genes_Bar_pval_1.png",plot = p_sig, width = 12, height = 6, dpi = 300)
 
-# ----MA Plots of up and down regulated gene counts ----
+# ---- MA Plots of up and down regulated gene counts ----
 
 # Run DSEq2 on all cell types
 deg_results <- list()
@@ -240,12 +235,12 @@ cell_types <- levels(seu_obj)
 for (cell_type in cell_types) {
   cat("\\\\n=== Processing", cell_type, "===\\\\n")
   deg_results[[cell_type]] <- run_pseudobulk_deg(seu_obj, cell_type, 
-                                                 alpha = 0.2, save_results = TRUE)
+                                                 alpha = 0.2, save_results = FALSE)
 }
 
 # Function to create one panel of MA plots
 create_ma_plot <- function(deg_results, cell_types, contrast_name, 
-                                     padj_thresh = 0.1, lfc_thresh = 0) {
+                                     padj_thresh = 0.05, lfc_thresh = 0.5) {
   
   # Collect data for all cell types
   plot_data <- data.frame()
@@ -350,15 +345,46 @@ p_water_blum <- create_ma_plot(deg_results, rev(cell_types), "Water vs Blumeria"
 # Combine using patchwork
 p_ma_combined <- (p_water_ctrl | p_water_blum) +
   plot_annotation(
-    title = "MA Plots (adj. p-value <0.1)",theme = theme(plot.title = element_text(hjust = 0.5))
+    title = "MA Plots (adj. p-value <0.05)",theme = theme(plot.title = element_text(hjust = 0.5))
   )
 
 print(p_ma_combined)
 
 ggsave(
-  filename = "output/MA_Combined_Plot_p1.png",
+  filename = "04-results/MA_Combined_Plot_p_05.png",
   plot = p_ma_combined,
   width = 12.8,
   height = 7.2,
   dpi = 300
 )
+
+# ---- Volcano Plot ----
+res <- deg_results[["Cardiomyocytes"]]$results$water_vs_blum
+
+df <- as.data.frame(res) %>%
+  dplyr::rename(logFC = log2FoldChange, P.Value = pvalue, FDR = padj) %>%
+  rownames_to_column(var = "gene") %>%
+  filter(!is.na(FDR))
+
+p_p005 <- EnhancedVolcano(
+  toptable = df,
+  lab = NA,
+  x = 'logFC',
+  y = 'FDR',
+  pCutoff = 0.05,      # p = 0.05 (-log10 = 1.3)
+  FCcutoff = 0.5,       # No LFC cutoff
+  title = "Cardiomyocytes: Water vs Blumeria",
+  subtitle = "padj < 0.05, |LFC| > 0.5",
+  caption = NULL,
+  pointSize = 1.4,
+  colAlpha = 0.7,
+  col = c("grey70", "grey70", "grey70", "#E31A1C"),  # NS, DOWN, UP
+  cutoffLineType = 'dashed',
+  cutoffLineCol = 'black',
+  legendPosition = 'none',
+  legendLabels = c('Non-sig', 'Non-sig', '|LFC|<0.5','|LFC| > 0.5')
+) 
+
+print(p_p005)
+ggsave("04-results/Volcano_Cardiomyocytes_p005.png", p_p005, 
+       width = 11, height = 8.5, dpi = 300, bg = "white")
