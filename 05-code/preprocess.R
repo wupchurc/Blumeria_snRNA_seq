@@ -13,18 +13,18 @@ library(tidyr)
 library(dplyr)
 
 # Load control dataset from 10X CellRanger ----
-data_dirs <- c("data/Analysis/cellranger_Control_SP_11_GEX_FL-Z0041/raw_feature_bc_matrix/",
-               "data/Analysis/cellranger_Control_SP_12_GEX_FL-Z0044/raw_feature_bc_matrix/",
-               "data/Analysis/cellranger_Control_SP_14_GEX_FL-Z0047/raw_feature_bc_matrix/",
-               "data/Analysis/cellranger_Control_SP_15_GEX_FL-Z0054/raw_feature_bc_matrix/",
-               "data/Analysis/cellranger_MCT_Water_1_GEX_FL-Z0043/raw_feature_bc_matrix/",
-               "data/Analysis/cellranger_MCT_Water_5_GEX_FL-Z0046/raw_feature_bc_matrix/",
-               "data/Analysis/cellranger_MCT_Water_6_GEX_FL-Z0053/raw_feature_bc_matrix/",
-               "data/Analysis/cellranger_MCT_Water_9_GEX_FL-Z0056/raw_feature_bc_matrix/",
-               "data/Analysis/cellranger_MCT_Blumeria_1_GEX_FL-Z0042/raw_feature_bc_matrix/",
-               "data/Analysis/cellranger_MCT_Blumeria_3_GEX_FL-Z0045/raw_feature_bc_matrix/",
-               "data/Analysis/cellranger_MCT_Blumeria_4_GEX_FL-Z0048/raw_feature_bc_matrix/",
-               "data/Analysis/cellranger_MCT_Blumeria_7_GEX_FL-Z0055/raw_feature_bc_matrix/")
+data_dirs <- c("data/Analysis/cellranger_Control_SP_11_GEX_FL-Z0041/filtered_feature_bc_matrix/",
+               "data/Analysis/cellranger_Control_SP_12_GEX_FL-Z0044/filtered_feature_bc_matrix/",
+               "data/Analysis/cellranger_Control_SP_14_GEX_FL-Z0047/filtered_feature_bc_matrix/",
+               "data/Analysis/cellranger_Control_SP_15_GEX_FL-Z0054/filtered_feature_bc_matrix/",
+               "data/Analysis/cellranger_MCT_Water_1_GEX_FL-Z0043/filtered_feature_bc_matrix/",
+               "data/Analysis/cellranger_MCT_Water_5_GEX_FL-Z0046/filtered_feature_bc_matrix/",
+               "data/Analysis/cellranger_MCT_Water_6_GEX_FL-Z0053/filtered_feature_bc_matrix/",
+               "data/Analysis/cellranger_MCT_Water_9_GEX_FL-Z0056/filtered_feature_bc_matrix/",
+               "data/Analysis/cellranger_MCT_Blumeria_1_GEX_FL-Z0042/filtered_feature_bc_matrix/",
+               "data/Analysis/cellranger_MCT_Blumeria_3_GEX_FL-Z0045/filtered_feature_bc_matrix/",
+               "data/Analysis/cellranger_MCT_Blumeria_4_GEX_FL-Z0048/filtered_feature_bc_matrix/",
+               "data/Analysis/cellranger_MCT_Blumeria_7_GEX_FL-Z0055/filtered_feature_bc_matrix/")
 sample_ids <- c("Control11", "Control12", "Control14", "Control15",
                 "Water1", "Water5", "Water6", "Water9",
                 "Blumeria1", "Blumeria3", "Blumeria4", "Blumeria7")
