@@ -157,7 +157,7 @@ p_umap <- DimPlot(
   reduction  = "umap",
   split.by   = "condition",
   label      = TRUE,
-  label.size = 3,
+  label.size = 4,
   cols       = cell_cols          # <— key line
 ) +
   NoGrid() + 

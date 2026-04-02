@@ -107,13 +107,6 @@ run_pseudobulk_deg <- function(seu_obj, cell_type, min_counts = 10, alpha = 0.05
     saveRDS(results_list, file = paste0("03-analysis_scratch/", filename))
     cat("Results saved to:", filename, "\n")
     
-    # Save plots
-    # ggsave(paste0("PCA_", gsub("[^A-Za-z0-9]", "_", cell_type), ".png"),
-    # plot = p_pca, width = 8, height = 6, dpi = 300)
-    # ggsave(paste0("MA_Water_", gsub("[^A-Za-z0-9]", "_", cell_type), ".png"),
-    # plot = p_ma_water, width = 8, height = 6, dpi = 300)
-    # ggsave(paste0("MA_BlumWater_", gsub("[^A-Za-z0-9]", "_", cell_type), ".png"),
-    # plot = p_ma_blum_water, width = 8, height = 6, dpi = 300)
   }
   
   # Return results
@@ -158,14 +151,6 @@ for (cell_type in cell_types) {
   sig_up_water <- sum(res$water_vs_ctrl$padj < 0.2 & res$water_vs_ctrl$log2FoldChange > 0, na.rm = TRUE)
   sig_down_water <- sum(res$water_vs_ctrl$padj < 0.2 & res$water_vs_ctrl$log2FoldChange < 0, na.rm = TRUE)
   
-  # Blumeria vs Control  
-  # sig_up_blum_ctrl <- sum(res$blum_vs_ctrl$padj < 0.05 & res$blum_vs_ctrl$log2FoldChange > 0, na.rm = TRUE)
-  # sig_down_blum_ctrl <- sum(res$blum_vs_ctrl$padj < 0.05 & res$blum_vs_ctrl$log2FoldChange < 0, na.rm = TRUE)
-  
-  # Blumeria vs Water
-  # sig_up_blum_water <- sum(res$blum_vs_water$padj < 0.05 & res$blum_vs_water$log2FoldChange > 0, na.rm = TRUE)
-  # sig_down_blum_water <- sum(res$blum_vs_water$padj < 0.05 & res$blum_vs_water$log2FoldChange < 0, na.rm = TRUE)
-  
   # Water vs Blumeria
   sig_up_water_blum <- sum(res$water_vs_blum$padj < 0.2 & res$water_vs_blum$log2FoldChange > 0, na.rm = TRUE)
   sig_down_water_blum <- sum(res$water_vs_blum$padj < 0.2 & res$water_vs_blum$log2FoldChange < 0, na.rm = TRUE)
@@ -176,18 +161,7 @@ for (cell_type in cell_types) {
     upregulated = sig_up_water,
     downregulated = sig_down_water
   ))
-  # sig_counts <- rbind(sig_counts, data.frame(
-  # cell_type = cell_type,
-  # contrast = "Blumeria vs Ctrl", 
-  # upregulated = sig_up_blum_ctrl,
-  # downregulated = sig_down_blum_ctrl
-  # ))
-  # sig_counts <- rbind(sig_counts, data.frame(
-  # cell_type = cell_type,
-  # contrast = "Blumeria vs Water",
-  # upregulated = sig_up_blum_water,
-  # downregulated = sig_down_blum_water
-  # ))
+  
   sig_counts <- rbind(sig_counts, data.frame(
     cell_type = cell_type,
     contrast = "Water vs Blumeria",
@@ -207,8 +181,6 @@ sig_counts_long$direction <- factor(sig_counts_long$direction,
                                     levels = c("upregulated", "downregulated"))
 sig_counts_long$contrast <- factor(sig_counts_long$contrast, 
                                    levels = c("Water vs Ctrl", 
-                                              # "Blumeria vs Ctrl", 
-                                              # "Blumeria vs Water",
                                               "Water vs Blumeria"
                                    ))
 
@@ -345,7 +317,7 @@ p_water_blum <- create_ma_plot(deg_results, rev(cell_types), "Water vs Blumeria"
 # Combine using patchwork
 p_ma_combined <- (p_water_ctrl | p_water_blum) +
   plot_annotation(
-    title = "MA Plots (adj. p-value <0.05)",theme = theme(plot.title = element_text(hjust = 0.5))
+    title = "DEGs (adj. p-value < 0.05, l2fc > 0.5)",theme = theme(plot.title = element_text(hjust = 0.5))
   )
 
 print(p_ma_combined)

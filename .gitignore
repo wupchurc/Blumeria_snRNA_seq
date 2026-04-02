@@ -5,6 +5,7 @@
 .Ruserdata
 # Data/outputs
 *_scratch/
+00-metadata/
 01-raw_data/
 02-processed/
 03-analysis/

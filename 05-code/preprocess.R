@@ -65,7 +65,7 @@ for (i in seq_along(obj_list)) {
   
   # QC
   seu[["percent.mt"]] <- PercentageFeatureSet(seu, pattern = "^Mt-")
-  seu <- subset(seu, subset = nFeature_RNA > 200 & nFeature_RNA < 2500 & percent.mt < 5)
+  seu <- subset(seu, subset = nCount_RNA < 80000 & nFeature_RNA < 10000 & percent.mt < 5)
   
   # Preprocessing (required for DoubletFinder)
   seu <- NormalizeData(seu)
@@ -93,7 +93,7 @@ for (i in seq_along(obj_list)) {
   doubletFinder_obj_list[[i]] <- seu  
 }
 
-saveRDS(doubletFinder_obj_list, file = "doubletFinder_obj.rds")
+saveRDS(doubletFinder_obj_list, file = "03-analysis_scratch/doubletFinder_obj.rds")
 # doubletFinder_obj_list <- readRDS("doubletFinder_obj.rds")
 
 # Filter ----
