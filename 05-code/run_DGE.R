@@ -75,20 +75,20 @@ run_pseudobulk_deg <- function(seu_obj, cell_type, min_counts = 10, alpha = 0.05
   cat("\nWater vs Blumeria:\n"); summary(res_water_vs_blum)
   
   # Normalize data for PCA
-  rld <- rlog(dds, blind = FALSE)
+  # rld <- vst(dds, blind = FALSE)
   
   # Generate plots
-  title <- ifelse(is.null(plot_title), cell_type, plot_title)
+  # title <- ifelse(is.null(plot_title), cell_type, plot_title)
   
-  p_pca <- plotPCA(rld, intgroup = "condition") +
-    stat_ellipse(level = 0.95, alpha = 0.3, geom = "polygon") +
-    ggtitle(paste("Pseudoulk PCA:", title))
+  # p_pca <- plotPCA(rld, intgroup = "condition") +
+    # stat_ellipse(level = 0.95, alpha = 0.3, geom = "polygon") +
+    # ggtitle(paste("Pseudoulk PCA:", title))
   
-  p_ma_water <- plotMA(res_water_vs_ctrl) + ggtitle("MA: Water vs Control")
-  p_ma_water_blum <- plotMA(res_water_vs_blum) + ggtitle("MA: Water vs Blumeria")
+  # p_ma_water <- plotMA(res_water_vs_ctrl) + ggtitle("MA: Water vs Control")
+  # p_ma_water_blum <- plotMA(res_water_vs_blum) + ggtitle("MA: Water vs Blumeria")
   
   # Display plots
-  print(p_pca)
+  # print(p_pca)
   # print(p_ma_water)
   # print(p_ma_water_blum)
   
@@ -98,9 +98,9 @@ run_pseudobulk_deg <- function(seu_obj, cell_type, min_counts = 10, alpha = 0.05
       water_vs_ctrl = res_water_vs_ctrl,
       blum_vs_ctrl = res_blum_vs_ctrl,
       blum_vs_water = res_blum_vs_water,
-      water_vs_blum = res_water_vs_blum,
-      dds = dds,
-      rld = rld
+      water_vs_blum = res_water_vs_blum
+      # dds = dds
+      # rld = rld
     )
     
     filename <- paste0("DEG_", gsub("[^A-Za-z0-9]", "_", cell_type), ".rds")
@@ -110,20 +110,16 @@ run_pseudobulk_deg <- function(seu_obj, cell_type, min_counts = 10, alpha = 0.05
   }
   
   # Return results
-  return(list(
-    results = list(
+  return(
+    results <- list(
       water_vs_ctrl = res_water_vs_ctrl,
       blum_vs_ctrl = res_blum_vs_ctrl,
       blum_vs_water = res_blum_vs_water,
-      water_vs_blum = res_water_vs_blum
-    ),
-    dds = dds,
-    rld = rld,
-    plots = list(pca = p_pca,
-                 ma_water = p_ma_water, 
-                 ma_blum_water = p_ma_water_blum
+      water_vs_blum = res_water_vs_blum,
+      dds = dds
+      # rld = rld
     )
-  ))
+  )
 }
 
 # ---- Bar Plots of up and down regulated gene counts ----
@@ -207,7 +203,7 @@ cell_types <- levels(seu_obj)
 for (cell_type in cell_types) {
   cat("\\\\n=== Processing", cell_type, "===\\\\n")
   deg_results[[cell_type]] <- run_pseudobulk_deg(seu_obj, cell_type, 
-                                                 alpha = 0.2, save_results = FALSE)
+                                                 alpha = 0.2, save_results = TRUE)
 }
 
 # Function to create one panel of MA plots
@@ -333,6 +329,7 @@ ggsave(
 # ---- Volcano Plot ----
 res <- deg_results[["Cardiomyocytes"]]$results$water_vs_blum
 
+
 df <- as.data.frame(res) %>%
   dplyr::rename(logFC = log2FoldChange, P.Value = pvalue, FDR = padj) %>%
   rownames_to_column(var = "gene") %>%
@@ -360,3 +357,8 @@ p_p005 <- EnhancedVolcano(
 print(p_p005)
 ggsave("04-results/Volcano_Cardiomyocytes_p005.png", p_p005, 
        width = 11, height = 8.5, dpi = 300, bg = "white")
+
+
+# ----
+run_pseudobulk_deg(seu_obj, "Cardiomyocytes", 
+                   alpha = 0.2, save_results = TRUE)
