@@ -81,8 +81,8 @@ run_pseudobulk_deg <- function(seu_obj, cell_type, min_counts = 10, alpha = 0.05
   # title <- ifelse(is.null(plot_title), cell_type, plot_title)
   
   # p_pca <- plotPCA(rld, intgroup = "condition") +
-    # stat_ellipse(level = 0.95, alpha = 0.3, geom = "polygon") +
-    # ggtitle(paste("Pseudoulk PCA:", title))
+  # stat_ellipse(level = 0.95, alpha = 0.3, geom = "polygon") +
+  # ggtitle(paste("Pseudoulk PCA:", title))
   
   # p_ma_water <- plotMA(res_water_vs_ctrl) + ggtitle("MA: Water vs Control")
   # p_ma_water_blum <- plotMA(res_water_vs_blum) + ggtitle("MA: Water vs Blumeria")
@@ -203,12 +203,12 @@ cell_types <- levels(seu_obj)
 for (cell_type in cell_types) {
   cat("\\\\n=== Processing", cell_type, "===\\\\n")
   deg_results[[cell_type]] <- run_pseudobulk_deg(seu_obj, cell_type, 
-                                                 alpha = 0.2, save_results = TRUE)
+                                                 alpha = 0.2, save_results = FALSE)
 }
 
 # Function to create one panel of MA plots
 create_ma_plot <- function(deg_results, cell_types, contrast_name, 
-                                     padj_thresh = 0.05, lfc_thresh = 0.5) {
+                           padj_thresh = 0.05, lfc_thresh = 0.5) {
   
   # Collect data for all cell types
   plot_data <- data.frame()
@@ -220,9 +220,9 @@ create_ma_plot <- function(deg_results, cell_types, contrast_name,
     
     # Extract the appropriate contrast
     if (contrast_name == "Water vs Ctrl") {
-      res <- deg_results[[cell_type]]$results$water_vs_ctrl
+      res <- deg_results[[cell_type]]$water_vs_ctrl
     } else if (contrast_name == "Water vs Blumeria") {
-      res <- deg_results[[cell_type]]$results$water_vs_blum
+      res <- deg_results[[cell_type]]$water_vs_blum
     } 
     
     # Convert to data frame
@@ -306,9 +306,9 @@ create_ma_plot <- function(deg_results, cell_types, contrast_name,
 }
 
 # Create plots for each contrast
-p_water_ctrl <- create_ma_plot(deg_results, rev(cell_types), "Water vs Ctrl")
+p_water_ctrl <- create_ma_plot(deg_results, rev(cell_types),padj_thresh = 0.1, "Water vs Ctrl")
 # p_blum_ctrl <- create_celltype_deg_plot(deg_results, cell_types, "Blumeria vs Ctrl")
-p_water_blum <- create_ma_plot(deg_results, rev(cell_types), "Water vs Blumeria")
+p_water_blum <- create_ma_plot(deg_results, rev(cell_types),padj_thresh = 0.1, "Water vs Blumeria")
 
 # Combine using patchwork
 p_ma_combined <- (p_water_ctrl | p_water_blum) +
@@ -327,7 +327,7 @@ ggsave(
 )
 
 # ---- Volcano Plot ----
-res <- deg_results[["Cardiomyocytes"]]$results$water_vs_blum
+res <- deg_results[["Cardiomyocytes"]]$water_vs_blum
 
 
 df <- as.data.frame(res) %>%
